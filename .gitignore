@@ -27,5 +27,3 @@ env/
 .coverage
 htmlcov/
 
-# Alembic
-alembic.ini
