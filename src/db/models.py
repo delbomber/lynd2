@@ -1,8 +1,8 @@
 import enum
 from datetime import datetime
 from sqlalchemy import (
-    Column, Integer, String, DateTime, Text, Boolean,
-    ForeignKey, JSON, Enum as SQLEnum, Float
+    Column, Integer, String, DateTime, Text,
+    ForeignKey, JSON, Enum as SQLEnum,
 )
 from sqlalchemy.orm import DeclarativeBase, relationship
 
@@ -51,7 +51,7 @@ class Patient(Base):
     phone = Column(String(20), nullable=False)
     date_of_birth = Column(String(10), nullable=False)  # stored as YYYY-MM-DD string
     email = Column(String(200))
-    communication_preferences = Column(JSON, default={})
+    communication_preferences = Column(JSON, default=dict)
     created_at = Column(DateTime, default=datetime.utcnow)
     referrals = relationship("Referral", back_populates="patient")
 
@@ -62,7 +62,7 @@ class Referral(Base):
     patient_id = Column(Integer, ForeignKey("patients.id"), nullable=False)
     study_id = Column(String(100), nullable=False)
     referring_provider = Column(String(200))
-    referral_metadata = Column(JSON, default={})
+    referral_metadata = Column(JSON, default=dict)
     status = Column(SQLEnum(ReferralStatus), default=ReferralStatus.PENDING)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -119,7 +119,7 @@ class AuditLog(Base):
     entity_type = Column(String(50), nullable=False)
     entity_id = Column(Integer, nullable=False)
     event_type = Column(String(100), nullable=False)
-    event_data = Column(JSON, default={})
+    event_data = Column(JSON, default=dict)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
@@ -128,7 +128,7 @@ class IRBKnowledgeEntry(Base):
     id = Column(Integer, primary_key=True)
     key = Column(String(200), unique=True, nullable=False)
     content = Column(Text, nullable=False)
-    tags = Column(JSON, default=[])
+    tags = Column(JSON, default=list)
     study_id = Column(String(100))
     created_at = Column(DateTime, default=datetime.utcnow)
     # NOTE: embedding column (pgvector) is added in Task 15 after pgvector is confirmed available
