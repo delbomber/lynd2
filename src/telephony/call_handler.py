@@ -109,7 +109,7 @@ class CallHandler:
         if self.websocket is None or self.tts is None:
             return
 
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         mulaw_audio = await loop.run_in_executor(None, self.tts.synthesize, text)
 
         if not mulaw_audio:
@@ -243,18 +243,16 @@ class CallHandler:
             await self._save_session()
 
     async def _save_session(self) -> None:
-        """Persist final state and transcript to CallSession."""
+        """Persist final state and transcript to an existing CallSession."""
         try:
-            transcript_text = json.dumps(self.context.transcript_segments)
-            session = CallSession(
-                outreach_job_id=self.job_id,
-                final_state=self.machine.current_state,
-                transcript=transcript_text,
-                started_at=self.context.started_at,
-                ended_at=datetime.utcnow(),
-            )
-            self.db.add(session)
-            self.db.commit()
+            session = self.db.query(CallSession).filter(
+                CallSession.outreach_job_id == self.job_id
+            ).first()
+            if session:
+                session.final_state = self.machine.current_state
+                session.transcript = json.dumps(self.context.transcript_segments)
+                session.ended_at = datetime.utcnow()
+                self.db.commit()
             logger.info("Call session saved for job_id=%s", self.job_id)
         except Exception:
             logger.exception("Failed to save call session for job_id=%s", self.job_id)

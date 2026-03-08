@@ -87,7 +87,14 @@ async def handle_media_stream(job_id: int, websocket: WebSocket):
             return
 
         referral = db.query(Referral).filter(Referral.id == job.referral_id).first()
+        if not referral:
+            await websocket.close()
+            return
+
         patient = db.query(Patient).filter(Patient.id == referral.patient_id).first()
+        if not patient:
+            await websocket.close()
+            return
 
         context = ConversationContext(
             patient_name=f"{patient.first_name} {patient.last_name}",
