@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import threading
 import queue
@@ -11,7 +12,6 @@ from deepgram import DeepgramClient
 
 logger = logging.getLogger(__name__)
 
-# Sentinel to signal the thread to stop
 _STOP = b"__STOP__"
 
 
@@ -28,10 +28,19 @@ class DeepgramTranscriber:
         self._audio_queue: queue.Queue[bytes] = queue.Queue()
         self._thread: Optional[threading.Thread] = None
         self._loop: Optional[asyncio.AbstractEventLoop] = None
+        self._conn = None
+        self._listening = False
 
-    def _parse_transcript_response(self, response) -> Optional[str]:
+    def _extract_transcript(self, response) -> Optional[str]:
         """Extracts final transcript text from Deepgram response."""
-        data = response if isinstance(response, dict) else response.to_dict()
+        if isinstance(response, bytes):
+            return None
+        data = response if isinstance(response, dict) else (
+            response.to_dict() if hasattr(response, 'to_dict') else
+            json.loads(str(response)) if response else None
+        )
+        if not data:
+            return None
         if not data.get("is_final"):
             return None
         alternatives = data.get("channel", {}).get("alternatives", [])
@@ -54,15 +63,28 @@ class DeepgramTranscriber:
                 interim_results="false",
                 endpointing="500",
             ) as conn:
-                # Register transcript handler
-                def on_message(result, **kwargs):
-                    text = self._parse_transcript_response(result)
+                self._conn = conn
+
+                # Import EventType from the module
+                from deepgram.listen.v1.client import V1SocketClient
+                import typing
+                EventType = typing.get_type_hints(V1SocketClient.on)['event_name']
+
+                # Register message handler
+                def on_message(result):
+                    text = self._extract_transcript(result)
                     if text and self.on_transcript and self._loop:
                         asyncio.run_coroutine_threadsafe(
                             self.on_transcript(text), self._loop
                         )
 
-                conn.on("transcript", on_message)
+                conn.on(EventType.MESSAGE, on_message)
+
+                # Start a listener thread that processes incoming messages
+                listener_thread = threading.Thread(
+                    target=conn.start_listening, daemon=True
+                )
+                listener_thread.start()
 
                 # Feed audio from queue until stopped
                 while True:
@@ -72,7 +94,18 @@ class DeepgramTranscriber:
                         continue
                     if audio is _STOP:
                         break
-                    conn.send(audio)
+                    try:
+                        conn.send_media(audio)
+                    except Exception:
+                        logger.exception("Error sending audio to Deepgram")
+                        break
+
+                # Signal Deepgram to finalize
+                try:
+                    conn.send_close_stream()
+                except Exception:
+                    pass
+
         except Exception:
             logger.exception("Deepgram thread error")
 
