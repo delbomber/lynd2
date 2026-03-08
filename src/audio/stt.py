@@ -73,7 +73,7 @@ class DeepgramTranscriber:
                 channels="1",
                 sample_rate="8000",
                 interim_results="false",
-                endpointing="500",
+                endpointing="300",
             ) as conn:
                 self._conn = conn
 

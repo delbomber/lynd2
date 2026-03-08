@@ -41,7 +41,7 @@ class IdentityVerificationState:
 
     def verify_dob(self, patient_said: str, actual_dob: str, api_key: str) -> bool:
         """Uses Claude to parse the spoken DOB and compare to record."""
-        claude = ClaudeClient(api_key=api_key)
+        claude = ClaudeClient(api_key=api_key, model="claude-haiku-4-5-20251001")
         parsed = claude.complete(
             system=DOB_PARSE_SYSTEM,
             user=patient_said,

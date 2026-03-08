@@ -102,7 +102,10 @@ class CallHandler:
         self.tts = None
 
     async def speak(self, text: str) -> None:
-        """Synthesize text via TTS and stream audio chunks back to Twilio WebSocket."""
+        """Synthesize text via TTS and stream audio chunks back to Twilio WebSocket.
+
+        Uses streaming TTS so first audio bytes arrive at the caller faster.
+        """
         self.context.append_transcript("agent", text)
         logger.info("Agent says: %s", text)
 
@@ -110,29 +113,45 @@ class CallHandler:
             return
 
         loop = asyncio.get_running_loop()
-        mulaw_audio = await loop.run_in_executor(None, self.tts.synthesize, text)
+        audio_queue: asyncio.Queue[Optional[bytes]] = asyncio.Queue()
 
-        if not mulaw_audio:
+        def _tts_worker():
+            try:
+                for mulaw_chunk in self.tts.synthesize_stream(text):
+                    asyncio.run_coroutine_threadsafe(
+                        audio_queue.put(mulaw_chunk), loop
+                    )
+            except Exception:
+                logger.exception("TTS streaming error")
+            finally:
+                asyncio.run_coroutine_threadsafe(audio_queue.put(None), loop)
+
+        loop.run_in_executor(None, _tts_worker)
+
+        # Send audio chunks to Twilio as they arrive from ElevenLabs
+        sent_any = False
+        while True:
+            mulaw_chunk = await audio_queue.get()
+            if mulaw_chunk is None:
+                break
+            sent_any = True
+            for offset in range(0, len(mulaw_chunk), MULAW_CHUNK_SIZE):
+                sub = mulaw_chunk[offset : offset + MULAW_CHUNK_SIZE]
+                payload = base64.b64encode(sub).decode("ascii")
+                await self.websocket.send_json({
+                    "event": "media",
+                    "streamSid": self.stream_sid,
+                    "media": {"payload": payload},
+                })
+
+        if not sent_any:
             return
 
-        # Send in 160-byte chunks (20ms at 8kHz mulaw)
-        for offset in range(0, len(mulaw_audio), MULAW_CHUNK_SIZE):
-            chunk = mulaw_audio[offset : offset + MULAW_CHUNK_SIZE]
-            payload = base64.b64encode(chunk).decode("ascii")
-            media_msg = {
-                "event": "media",
-                "streamSid": self.stream_sid,
-                "media": {"payload": payload},
-            }
-            await self.websocket.send_json(media_msg)
-
-        # Send mark to signal end of speech
-        mark_msg = {
+        await self.websocket.send_json({
             "event": "mark",
             "streamSid": self.stream_sid,
             "mark": {"name": "speech_done"},
-        }
-        await self.websocket.send_json(mark_msg)
+        })
 
     async def on_call_start(self) -> None:
         """Send the opening identity verification prompt."""

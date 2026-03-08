@@ -24,7 +24,7 @@ class Intent(str, enum.Enum):
 
 class IntentDetector:
     def __init__(self, api_key: str):
-        self.claude = ClaudeClient(api_key=api_key)
+        self.claude = ClaudeClient(api_key=api_key, model="claude-haiku-4-5-20251001")
 
     def _call_claude(self, patient_text: str, state: str) -> str:
         user_msg = f"Conversation state: {state}\nPatient said: \"{patient_text}\""
