@@ -214,8 +214,6 @@ class CallHandler:
         await self.stt.start(on_transcript=self.on_transcript)
 
         try:
-            await self.on_call_start()
-
             while True:
                 raw = await self.websocket.receive_text()
                 msg = json.loads(raw)
@@ -226,6 +224,8 @@ class CallHandler:
                     logger.info(
                         "Media stream started: streamSid=%s", self.stream_sid
                     )
+                    # Now that we have the streamSid, send the opening prompt
+                    await self.on_call_start()
 
                 elif event == "media":
                     audio_bytes = base64.b64decode(msg["media"]["payload"])
