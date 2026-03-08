@@ -11,7 +11,7 @@ from typing import Optional
 from fastapi import WebSocket
 
 from src.conversation.state_machine import ConversationContext, ConversationMachine
-from src.conversation.states.identity import IdentityVerificationState
+from src.conversation.states.identity import IdentityVerificationState, _looks_like_dob
 from src.conversation.states.introduction import IntroductionState
 from src.conversation.states.prescreen import PreScreenState
 from src.conversation.states.scheduling import SchedulingState
@@ -147,6 +147,8 @@ class CallHandler:
         current = self.machine.current_state
 
         if current == ConversationState.IDENTITY_VERIFICATION:
+            # Only count as a real attempt if the utterance looks like a DOB
+            is_dob_attempt = _looks_like_dob(text)
             next_state, response = self.identity_state.handle_response(
                 patient_text=text,
                 context=self.context,
@@ -154,7 +156,8 @@ class CallHandler:
                 api_key=self.anthropic_api_key,
                 attempt=self.identity_attempt,
             )
-            self.identity_attempt += 1
+            if is_dob_attempt:
+                self.identity_attempt += 1
             if next_state != current:
                 self.machine.transition(next_state)
 
