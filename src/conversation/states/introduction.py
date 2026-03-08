@@ -8,10 +8,9 @@ from src.llm.intent import IntentDetector, Intent
 class IntroductionState:
     def get_opening_prompt(self, context: ConversationContext) -> str:
         return (
-            "I'm calling from Lynd Clinical about a research opportunity "
-            "your provider referred you for. We're conducting a clinical study "
-            "and your doctor thought you might qualify. "
-            "Do you have a couple of minutes to learn more?"
+            "Your doctor referred you for a clinical research study we're coordinating. "
+            "It would involve a short screening call with one of our study coordinators. "
+            "Would you like to hear a little more about it?"
         )
 
     def handle_response(
@@ -23,18 +22,19 @@ class IntroductionState:
         if intent == Intent.ESCALATE:
             return (
                 ConversationState.ESCALATION,
-                "Of course — let me connect you with a member of our study team.",
+                "Of course — let me connect you with one of our study coordinators.",
             )
         elif intent == Intent.DENY:
             context.interest_level = "not_interested"
             return (
                 ConversationState.COMPLETED,
-                "No problem at all. Thank you for your time, and have a great day.",
+                "No problem at all. If anything changes, your doctor's office "
+                "can always put you back in touch with us. Have a great day!",
             )
         else:
             context.interest_level = "interested"
             return (
                 ConversationState.PRE_SCREEN,
-                "Great, thank you! I just have a few quick questions to see if you may qualify. "
-                "This should only take about two minutes.",
+                "Great! I'll ask a few quick questions that help us see whether "
+                "the study might be a good fit. This should only take about two minutes.",
             )

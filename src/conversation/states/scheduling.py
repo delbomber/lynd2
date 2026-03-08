@@ -11,8 +11,8 @@ class SchedulingState:
 
     def get_opening_prompt(self) -> str:
         return (
-            "Would you like to schedule a brief screening call with our coordinator? "
-            "I can also send you a link by text message so you can pick a time that works."
+            "The next step would be a short call with one of our study coordinators. "
+            "Would you like me to send you a link so you can pick a time that works best?"
         )
 
     def handle_response(
@@ -24,26 +24,27 @@ class SchedulingState:
         if intent == Intent.ESCALATE:
             return (
                 ConversationState.ESCALATION,
-                "I'll connect you with our study team right away.",
+                "Of course — let me connect you with one of our study coordinators.",
             )
         elif intent in (Intent.SCHEDULE, Intent.CONFIRM):
             context.scheduling_outcome = "scheduled"
             return (
                 ConversationState.COMPLETED,
-                "Wonderful! I'll send you a text message with a scheduling link "
-                "so you can pick the time that works best. Thank you for your interest!",
+                "I'll send you a text with a scheduling link so you can pick "
+                "whatever time works best. Thanks so much for your time today, "
+                "and we look forward to connecting you with the study team!",
             )
         elif intent == Intent.CALLBACK:
             context.scheduling_outcome = "callback_requested"
             return (
                 ConversationState.COMPLETED,
-                "Of course — I'll make a note that you'd like us to follow up. "
-                "Our coordinator will reach out to find a good time. Thank you!",
+                "No problem — I'll make a note that you'd like a callback, "
+                "and one of our coordinators will reach out. Thanks for your time!",
             )
         else:
             context.scheduling_outcome = "declined"
             return (
                 ConversationState.COMPLETED,
-                "No problem at all. If you change your mind, our study team would be "
-                "happy to hear from you. Thank you for your time today!",
+                "Totally understand. If anything changes, your doctor's office "
+                "can always put you back in touch with us. Have a great day!",
             )

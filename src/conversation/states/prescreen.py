@@ -27,7 +27,7 @@ class PreScreenState:
         if intent == Intent.ESCALATE:
             return (
                 ConversationState.ESCALATION,
-                "I can connect you with a member of our study team to answer that.",
+                "I can connect you with one of our study coordinators who can answer that.",
                 {},
             )
 
@@ -50,8 +50,9 @@ class PreScreenState:
         else:
             return (
                 ConversationState.SCHEDULING,
-                "Thank you for answering those questions. Based on what you've told me, "
-                "the next step would be a brief screening call with our study coordinator. "
-                "Would you like to schedule that now?",
+                "Thank you for sharing that. Based on your answers, it sounds like "
+                "you could be a good fit. The next step would be a short call with "
+                "one of our study coordinators. Would you like me to send you a link "
+                "so you can pick a time that works best?",
                 {},
             )

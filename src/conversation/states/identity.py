@@ -36,7 +36,11 @@ class IdentityVerificationState:
 
     def get_opening_prompt(self, context: ConversationContext) -> str:
         first_name = context.patient_name.split()[0]
-        return f"Hi, may I please speak with {first_name}?"
+        return (
+            f"Hi {first_name}, this is Sarah calling from Lynd Clinical. "
+            f"Your doctor recently referred you to us about a research study, "
+            f"and I'm calling to follow up. Is now an okay time?"
+        )
 
     def verify_dob(self, patient_said: str, actual_dob: str, api_key: str) -> bool:
         """Uses Claude to parse the spoken DOB and compare to record."""
@@ -67,8 +71,8 @@ class IdentityVerificationState:
             logger.info("Greeting confirmed, asking for DOB")
             return (
                 ConversationState.IDENTITY_VERIFICATION,
-                "Great, thanks! To make sure I'm speaking with the right person, "
-                "could you please confirm your date of birth?",
+                "Great! Before I continue, could you please confirm your date of birth "
+                "so I can make sure I'm speaking with the right person?",
             )
 
         # Phase 2: DOB verification
@@ -80,8 +84,7 @@ class IdentityVerificationState:
             )
             return (
                 ConversationState.IDENTITY_VERIFICATION,
-                "I'm sorry, could you please share your date of birth "
-                "so I can verify your identity?",
+                "Sorry about that — could you share your date of birth for me?",
             )
 
         if self.verify_dob(
@@ -90,19 +93,20 @@ class IdentityVerificationState:
             context.identity_verified = True
             return (
                 ConversationState.INTRODUCTION,
-                "Thank you for confirming. I'm calling from Lynd Clinical "
-                "about a research opportunity your provider referred you for. "
-                "Do you have a few minutes to hear about it?",
+                "Perfect, thank you! So as I mentioned, your doctor referred you "
+                "for a clinical research study we're coordinating. It would involve "
+                "a short screening call with one of our study coordinators. "
+                "Would you like to hear a little more about it?",
             )
         elif attempt < MAX_DOB_ATTEMPTS:
             return (
                 ConversationState.IDENTITY_VERIFICATION,
-                "I'm sorry, that didn't match our records. Could you try again "
-                "with your date of birth — month, day, and year?",
+                "I may have heard that incorrectly. Could you please confirm "
+                "your date of birth again — month, day, and year?",
             )
         else:
             return (
                 ConversationState.ESCALATION,
-                "I'm having trouble verifying your information. "
-                "Let me connect you with a member of our study team who can help.",
+                "I'm having a bit of trouble verifying that. "
+                "Let me connect you with one of our study coordinators who can help.",
             )

@@ -81,7 +81,7 @@ def test_handle_response_retry_on_first_failure():
             attempt=1,
         )
     assert next_state == ConversationState.IDENTITY_VERIFICATION
-    assert "try again" in response.lower() or "match" in response.lower()
+    assert "date of birth" in response.lower()
 
 
 def test_handle_response_escalates_after_max_failures():

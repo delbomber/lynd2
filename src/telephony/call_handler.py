@@ -25,9 +25,9 @@ MULAW_CHUNK_SIZE = 160
 
 # Default pre-screen questions — override per study
 DEFAULT_PRESCREEN_QUESTIONS = [
-    {"key": "age_eligible", "text": "Are you between 18 and 70 years old?"},
-    {"key": "diagnosis_confirmed", "text": "Have you been diagnosed with the condition your doctor referred you about?"},
-    {"key": "no_conflicting_treatment", "text": "Are you currently free from any treatments that might interfere with a clinical study?"},
+    {"key": "age_eligible", "text": "First — are you between 18 and 70 years old?"},
+    {"key": "diagnosis_confirmed", "text": "And have you been diagnosed with the condition your doctor referred you for?"},
+    {"key": "receiving_treatment", "text": "Are you currently receiving treatment for that condition?"},
 ]
 
 
@@ -215,10 +215,10 @@ class CallHandler:
             self.machine.transition(ConversationState.COMPLETED)
 
         elif current == ConversationState.COMPLETED:
-            response = "Thank you for your time. Goodbye."
+            response = "Thanks again for your time. Take care!"
 
         else:
-            response = "I'm sorry, something went wrong."
+            response = "I'm sorry, I didn't catch that. Could you say that again?"
 
         await self.speak(response)
 
