@@ -29,7 +29,7 @@ def queue_outreach(referral_id: int):
         db.close()
 
 
-@celery_app.task(name="execute_outreach_job")
+@celery_app.task(name="execute_outreach_job", max_retries=0)
 def execute_outreach_job(job_id: int):
     """Executes a single outreach attempt — makes the Twilio call."""
     from src.db.session import _get_session_factory
@@ -37,13 +37,20 @@ def execute_outreach_job(job_id: int):
     from src.telephony.client import TwilioClient
     from src.config import get_settings
     from datetime import datetime
+    import logging
 
+    logger = logging.getLogger(__name__)
     settings = get_settings()
     SessionLocal = _get_session_factory()
     db = SessionLocal()
     try:
         job = db.query(OutreachJob).filter(OutreachJob.id == job_id).first()
-        if not job or job.status == OutreachStatus.CANCELLED:
+        if not job or job.status in (
+            OutreachStatus.CANCELLED,
+            OutreachStatus.COMPLETED,
+            OutreachStatus.IN_PROGRESS,
+        ):
+            logger.info("Skipping job %s (status=%s)", job_id, job.status if job else "not found")
             return
 
         referral = db.query(Referral).filter(Referral.id == job.referral_id).first()
@@ -94,9 +101,12 @@ def execute_outreach_job(job_id: int):
             db.commit()
 
     except Exception as e:
-        if job:
-            job.status = OutreachStatus.FAILED
-            db.commit()
-        raise
+        logger.exception("execute_outreach_job failed for job_id=%s", job_id)
+        try:
+            if job:
+                job.status = OutreachStatus.FAILED
+                db.commit()
+        except Exception:
+            logger.exception("Failed to mark job %s as FAILED", job_id)
     finally:
         db.close()
