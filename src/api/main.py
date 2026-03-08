@@ -39,3 +39,37 @@ def purge_queue():
     from src.queue.worker import celery_app
     purged = celery_app.control.purge()
     return {"status": "purged", "tasks_removed": purged}
+
+
+@app.post("/admin/cancel-all-jobs")
+def cancel_all_jobs():
+    """Cancel all queued/in-progress outreach jobs in the database.
+
+    This ensures that even if delayed Celery tasks fire, the worker
+    will skip them because the job status is CANCELLED.
+    """
+    from src.api.dependencies import get_db
+    from src.db.models import OutreachJob, OutreachStatus
+
+    db = next(get_db())
+    try:
+        cancelled = (
+            db.query(OutreachJob)
+            .filter(OutreachJob.status.in_([
+                OutreachStatus.QUEUED,
+                OutreachStatus.IN_PROGRESS,
+            ]))
+            .update(
+                {OutreachJob.status: OutreachStatus.CANCELLED},
+                synchronize_session="fetch",
+            )
+        )
+        db.commit()
+
+        # Also purge the Celery queue
+        from src.queue.worker import celery_app
+        celery_app.control.purge()
+
+        return {"status": "cancelled", "jobs_cancelled": cancelled}
+    finally:
+        db.close()
