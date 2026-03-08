@@ -23,6 +23,13 @@ logger = logging.getLogger(__name__)
 # Twilio Media Streams sends mulaw 8kHz audio in 160-byte chunks (20ms)
 MULAW_CHUNK_SIZE = 160
 
+# Default pre-screen questions — override per study
+DEFAULT_PRESCREEN_QUESTIONS = [
+    {"key": "age_eligible", "text": "Are you between 18 and 70 years old?"},
+    {"key": "diagnosis_confirmed", "text": "Have you been diagnosed with the condition your doctor referred you about?"},
+    {"key": "no_conflicting_treatment", "text": "Are you currently free from any treatments that might interfere with a clinical study?"},
+]
+
 
 class CallHandler:
     """Orchestrates one real-time voice conversation over a Twilio Media Stream."""
@@ -77,7 +84,7 @@ class CallHandler:
         # Conversation state handlers
         self.identity_state = IdentityVerificationState()
         self.introduction_state = IntroductionState()
-        self.prescreen_state = PreScreenState(questions=[])
+        self.prescreen_state = PreScreenState(questions=DEFAULT_PRESCREEN_QUESTIONS)
         self.scheduling_state = SchedulingState(
             calendly_event_url=self.calendly_event_url
         )
