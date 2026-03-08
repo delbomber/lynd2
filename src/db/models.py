@@ -5,6 +5,7 @@ from sqlalchemy import (
     ForeignKey, JSON, Enum as SQLEnum,
 )
 from sqlalchemy.orm import DeclarativeBase, relationship
+from pgvector.sqlalchemy import Vector
 
 
 class Base(DeclarativeBase):
@@ -130,5 +131,5 @@ class IRBKnowledgeEntry(Base):
     content = Column(Text, nullable=False)
     tags = Column(JSON, default=list)
     study_id = Column(String(100))
+    embedding = Column(Vector(1536))  # pgvector embedding dimension
     created_at = Column(DateTime, default=datetime.utcnow)
-    # NOTE: embedding column (pgvector) is added in Task 15 after pgvector is confirmed available
