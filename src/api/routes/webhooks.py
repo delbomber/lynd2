@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Form, Response
+from fastapi import APIRouter, Depends, Form, Response, WebSocket
 from sqlalchemy.orm import Session
 from twilio.twiml.voice_response import VoiceResponse, Connect, Stream
 from src.api.dependencies import get_db
@@ -66,3 +66,43 @@ async def handle_call_status(
         db.commit()
 
     return Response(content="<Response/>", media_type="application/xml")
+
+
+@router.websocket("/stream/{job_id}")
+async def handle_media_stream(job_id: int, websocket: WebSocket):
+    """Twilio Media Streams WebSocket — real-time voice conversation."""
+    await websocket.accept()
+
+    from src.db.session import get_db as _get_db_gen
+    from src.telephony.call_handler import CallHandler
+    from src.conversation.state_machine import ConversationContext
+    from src.db.models import OutreachJob, Patient, Referral
+
+    db_gen = _get_db_gen()
+    db = next(db_gen)
+    try:
+        job = db.query(OutreachJob).filter(OutreachJob.id == job_id).first()
+        if not job:
+            await websocket.close()
+            return
+
+        referral = db.query(Referral).filter(Referral.id == job.referral_id).first()
+        patient = db.query(Patient).filter(Patient.id == referral.patient_id).first()
+
+        context = ConversationContext(
+            patient_name=f"{patient.first_name} {patient.last_name}",
+            study_id=referral.study_id,
+        )
+        handler = CallHandler(
+            context=context,
+            patient_dob=patient.date_of_birth,
+            job_id=job_id,
+            db=db,
+            websocket=websocket,
+        )
+        await handler.run_websocket_session()
+    finally:
+        try:
+            next(db_gen)
+        except StopIteration:
+            pass
