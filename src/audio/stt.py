@@ -33,21 +33,33 @@ class DeepgramTranscriber:
 
     def _extract_transcript(self, response) -> Optional[str]:
         """Extracts final transcript text from Deepgram response."""
-        if isinstance(response, bytes):
+        if isinstance(response, bytes) or response is None:
             return None
-        data = response if isinstance(response, dict) else (
-            response.to_dict() if hasattr(response, 'to_dict') else
-            json.loads(str(response)) if response else None
-        )
-        if not data:
-            return None
-        if not data.get("is_final"):
-            return None
-        alternatives = data.get("channel", {}).get("alternatives", [])
-        if not alternatives:
-            return None
-        text = alternatives[0].get("transcript", "").strip()
-        return text if text else None
+
+        try:
+            # SDK v6 returns Pydantic models (ListenV1Results)
+            if hasattr(response, 'is_final'):
+                if not response.is_final:
+                    return None
+                alternatives = response.channel.alternatives
+                if not alternatives:
+                    return None
+                text = alternatives[0].transcript.strip()
+                return text if text else None
+
+            # Fallback for dict responses
+            if isinstance(response, dict):
+                if not response.get("is_final"):
+                    return None
+                alternatives = response.get("channel", {}).get("alternatives", [])
+                if not alternatives:
+                    return None
+                text = alternatives[0].get("transcript", "").strip()
+                return text if text else None
+        except Exception:
+            logger.exception("Error parsing Deepgram response")
+
+        return None
 
     def _run_deepgram(self):
         """Runs in a background thread — opens Deepgram connection and feeds audio."""
