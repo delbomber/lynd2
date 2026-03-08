@@ -72,13 +72,22 @@ class DeepgramTranscriber:
 
                 # Register message handler
                 def on_message(result):
+                    logger.info("Deepgram message received: %s", type(result).__name__)
                     text = self._extract_transcript(result)
-                    if text and self.on_transcript and self._loop:
-                        asyncio.run_coroutine_threadsafe(
-                            self.on_transcript(text), self._loop
-                        )
+                    if text:
+                        logger.info("Deepgram transcript: %s", text)
+                        if self.on_transcript and self._loop:
+                            asyncio.run_coroutine_threadsafe(
+                                self.on_transcript(text), self._loop
+                            )
+
+                def on_error(error):
+                    logger.error("Deepgram error: %s", error)
 
                 conn.on(EventType.MESSAGE, on_message)
+                conn.on(EventType.ERROR, on_error)
+
+                logger.info("Deepgram connection established, starting listener")
 
                 # Start a listener thread that processes incoming messages
                 listener_thread = threading.Thread(
@@ -87,15 +96,22 @@ class DeepgramTranscriber:
                 listener_thread.start()
 
                 # Feed audio from queue until stopped
+                audio_count = 0
                 while True:
                     try:
                         audio = self._audio_queue.get(timeout=0.1)
                     except queue.Empty:
                         continue
                     if audio is _STOP:
+                        logger.info("STT stop signal received after %d audio chunks", audio_count)
                         break
                     try:
                         conn.send_media(audio)
+                        audio_count += 1
+                        if audio_count == 1:
+                            logger.info("First audio chunk sent to Deepgram")
+                        elif audio_count % 100 == 0:
+                            logger.info("Sent %d audio chunks to Deepgram", audio_count)
                     except Exception:
                         logger.exception("Error sending audio to Deepgram")
                         break
