@@ -31,5 +31,72 @@ def queue_outreach(referral_id: int):
 
 @celery_app.task(name="execute_outreach_job")
 def execute_outreach_job(job_id: int):
-    """Executes a single outreach attempt. Full implementation in Tasks 7, 17."""
-    pass
+    """Executes a single outreach attempt — makes the Twilio call."""
+    from src.db.session import _get_session_factory
+    from src.db.models import OutreachJob, OutreachStatus, Referral, Patient, CallSession
+    from src.telephony.client import TwilioClient
+    from src.config import get_settings
+    from datetime import datetime
+
+    settings = get_settings()
+    SessionLocal = _get_session_factory()
+    db = SessionLocal()
+    try:
+        job = db.query(OutreachJob).filter(OutreachJob.id == job_id).first()
+        if not job or job.status == OutreachStatus.CANCELLED:
+            return
+
+        referral = db.query(Referral).filter(Referral.id == job.referral_id).first()
+        patient = db.query(Patient).filter(Patient.id == referral.patient_id).first()
+
+        job.status = OutreachStatus.IN_PROGRESS
+        job.started_at = datetime.utcnow()
+        db.commit()
+
+        if job.channel == "voice":
+            twilio = TwilioClient(
+                account_sid=settings.twilio_account_sid,
+                auth_token=settings.twilio_auth_token,
+                from_number=settings.twilio_phone_number,
+            )
+            base_url = settings.app_base_url
+            call_sid = twilio.make_outbound_call(
+                to=patient.phone,
+                webhook_url=f"{base_url}/webhooks/call/{job_id}/answer",
+                status_callback_url=f"{base_url}/webhooks/call/{job_id}/status",
+            )
+            # Create CallSession so webhooks can update it
+            call_session = CallSession(
+                outreach_job_id=job_id,
+                twilio_call_sid=call_sid,
+                started_at=datetime.utcnow(),
+            )
+            db.add(call_session)
+            db.commit()
+
+        elif job.channel == "sms":
+            twilio = TwilioClient(
+                account_sid=settings.twilio_account_sid,
+                auth_token=settings.twilio_auth_token,
+                from_number=settings.twilio_phone_number,
+            )
+            twilio.send_sms(
+                to=patient.phone,
+                body=(
+                    f"Hi {patient.first_name}, this is Lynd Clinical. "
+                    f"Your provider referred you for a research opportunity. "
+                    f"We tried to reach you by phone. Please call us back at "
+                    f"{settings.twilio_phone_number} if you're interested."
+                ),
+            )
+            job.status = OutreachStatus.COMPLETED
+            job.completed_at = datetime.utcnow()
+            db.commit()
+
+    except Exception as e:
+        if job:
+            job.status = OutreachStatus.FAILED
+            db.commit()
+        raise
+    finally:
+        db.close()
