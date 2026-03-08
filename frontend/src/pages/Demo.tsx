@@ -33,6 +33,9 @@ const colors = {
 
 export default function Demo() {
   const [phoneDigits, setPhoneDigits] = useState("");
+  const [firstName, setFirstName] = useState("Jane");
+  const [lastName, setLastName] = useState("Smith");
+  const [dob, setDob] = useState("1982-12-01");
   const [apiUrl, setApiUrl] = useState(() => localStorage.getItem(STORAGE_KEY) || "");
   const [showSettings, setShowSettings] = useState(false);
   const [status, setStatus] = useState<Status>("idle");
@@ -54,7 +57,7 @@ export default function Demo() {
     setPhoneDigits(raw);
   };
 
-  const canSubmit = phoneDigits.length === 10 && apiUrl.trim().length > 0 && status !== "sending";
+  const canSubmit = phoneDigits.length === 10 && firstName.trim().length > 0 && apiUrl.trim().length > 0 && status !== "sending";
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
@@ -64,10 +67,10 @@ export default function Demo() {
     const baseUrl = apiUrl.replace(/\/+$/, "");
     const body = {
       patient: {
-        first_name: "Demo",
-        last_name: "Patient",
+        first_name: firstName,
+        last_name: lastName,
         phone: `+1${phoneDigits}`,
-        date_of_birth: "1985-01-15",
+        date_of_birth: dob,
       },
       study_id: "DEMO-001",
       referring_provider: "Live Demo",
@@ -220,11 +223,78 @@ export default function Demo() {
           {/* Status: Idle / Sending */}
           {(status === "idle" || status === "sending") && (
             <>
+              <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: "block", fontSize: 13, color: colors.gray300, marginBottom: 6 }}>
+                    First name
+                  </label>
+                  <input
+                    type="text"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    disabled={status === "sending"}
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px",
+                      borderRadius: 8,
+                      border: `1px solid ${colors.navy700}`,
+                      background: colors.navy900,
+                      color: colors.white,
+                      fontSize: 14,
+                      outline: "none",
+                      opacity: status === "sending" ? 0.5 : 1,
+                    }}
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: "block", fontSize: 13, color: colors.gray300, marginBottom: 6 }}>
+                    Last name
+                  </label>
+                  <input
+                    type="text"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    disabled={status === "sending"}
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px",
+                      borderRadius: 8,
+                      border: `1px solid ${colors.navy700}`,
+                      background: colors.navy900,
+                      color: colors.white,
+                      fontSize: 14,
+                      outline: "none",
+                      opacity: status === "sending" ? 0.5 : 1,
+                    }}
+                  />
+                </div>
+              </div>
+              <label style={{ display: "block", fontSize: 13, color: colors.gray300, marginBottom: 6 }}>
+                Date of birth
+              </label>
+              <input
+                type="date"
+                value={dob}
+                onChange={(e) => setDob(e.target.value)}
+                disabled={status === "sending"}
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  borderRadius: 8,
+                  border: `1px solid ${colors.navy700}`,
+                  background: colors.navy900,
+                  color: colors.white,
+                  fontSize: 14,
+                  outline: "none",
+                  marginBottom: 12,
+                  opacity: status === "sending" ? 0.5 : 1,
+                }}
+              />
               <label
                 htmlFor="phone"
-                style={{ display: "block", fontSize: 13, color: colors.gray300, marginBottom: 8 }}
+                style={{ display: "block", fontSize: 13, color: colors.gray300, marginBottom: 6 }}
               >
-                Your phone number
+                Phone number
               </label>
               <input
                 id="phone"
