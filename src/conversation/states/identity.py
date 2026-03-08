@@ -31,13 +31,12 @@ def _looks_like_dob(text: str) -> bool:
 
 
 class IdentityVerificationState:
+    def __init__(self):
+        self.greeting_confirmed = False
+
     def get_opening_prompt(self, context: ConversationContext) -> str:
         first_name = context.patient_name.split()[0]
-        return (
-            f"Hi, may I please speak with {first_name}? "
-            f"Great — to make sure I'm speaking with the right person, "
-            f"could you please confirm your date of birth?"
-        )
+        return f"Hi, may I please speak with {first_name}?"
 
     def verify_dob(self, patient_said: str, actual_dob: str, api_key: str) -> bool:
         """Uses Claude to parse the spoken DOB and compare to record."""
@@ -61,8 +60,20 @@ class IdentityVerificationState:
         api_key: str,
         attempt: int = 1,
     ) -> Tuple[ConversationState, str]:
+        # Phase 1: Wait for patient to confirm they are the right person
+        if not self.greeting_confirmed:
+            # Any response (yes, speaking, this is she, hello, etc.) confirms
+            self.greeting_confirmed = True
+            logger.info("Greeting confirmed, asking for DOB")
+            return (
+                ConversationState.IDENTITY_VERIFICATION,
+                "Great, thanks! To make sure I'm speaking with the right person, "
+                "could you please confirm your date of birth?",
+            )
+
+        # Phase 2: DOB verification
         # If the transcript doesn't look like a date at all (background noise,
-        # greetings like "hello", "Miss Hurd", etc.), don't count it as an attempt
+        # greetings like "hello", etc.), don't count it as an attempt
         if not _looks_like_dob(patient_text):
             logger.info(
                 "Ignoring non-DOB utterance (attempt not counted): %r", patient_text

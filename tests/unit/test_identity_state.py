@@ -19,7 +19,7 @@ def test_opening_prompt_includes_patient_name():
     ctx = make_context()
     prompt = state.get_opening_prompt(ctx)
     assert "Jane" in prompt
-    assert "date of birth" in prompt.lower()
+    assert "date of birth" not in prompt.lower()  # DOB asked separately after greeting
 
 
 def test_verify_dob_correct(monkeypatch):
@@ -38,8 +38,24 @@ def test_verify_dob_wrong(monkeypatch):
     assert result is False
 
 
+def test_greeting_phase_asks_for_dob():
+    """First response after greeting should ask for DOB."""
+    state = IdentityVerificationState()
+    ctx = make_context()
+    next_state, response = state.handle_response(
+        patient_text="Yes, this is Jane",
+        context=ctx,
+        actual_dob="1980-01-15",
+        api_key="test",
+    )
+    assert next_state == ConversationState.IDENTITY_VERIFICATION
+    assert "date of birth" in response.lower()
+    assert state.greeting_confirmed is True
+
+
 def test_handle_response_success():
     state = IdentityVerificationState()
+    state.greeting_confirmed = True
     ctx = make_context()
     with patch.object(state, "verify_dob", return_value=True):
         next_state, response = state.handle_response(
@@ -54,6 +70,7 @@ def test_handle_response_success():
 
 def test_handle_response_retry_on_first_failure():
     state = IdentityVerificationState()
+    state.greeting_confirmed = True
     ctx = make_context()
     with patch.object(state, "verify_dob", return_value=False):
         next_state, response = state.handle_response(
@@ -69,6 +86,7 @@ def test_handle_response_retry_on_first_failure():
 
 def test_handle_response_escalates_after_max_failures():
     state = IdentityVerificationState()
+    state.greeting_confirmed = True
     ctx = make_context()
     with patch.object(state, "verify_dob", return_value=False):
         next_state, response = state.handle_response(
@@ -84,6 +102,7 @@ def test_handle_response_escalates_after_max_failures():
 def test_handle_response_retries_at_attempt_2():
     """With MAX_DOB_ATTEMPTS=3, attempt 2 should still retry."""
     state = IdentityVerificationState()
+    state.greeting_confirmed = True
     ctx = make_context()
     with patch.object(state, "verify_dob", return_value=False):
         next_state, response = state.handle_response(
@@ -99,6 +118,7 @@ def test_handle_response_retries_at_attempt_2():
 def test_non_dob_noise_not_counted_as_attempt():
     """Background noise like 'Miss Hurd' should not be treated as a DOB attempt."""
     state = IdentityVerificationState()
+    state.greeting_confirmed = True
     ctx = make_context()
     next_state, response = state.handle_response(
         patient_text="Miss Hurd",
