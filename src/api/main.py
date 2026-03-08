@@ -31,3 +31,11 @@ app.include_router(webhooks.router, prefix="/webhooks")
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.post("/admin/purge-queue")
+def purge_queue():
+    """Purge all pending Celery tasks from the queue."""
+    from src.queue.worker import celery_app
+    purged = celery_app.control.purge()
+    return {"status": "purged", "tasks_removed": purged}

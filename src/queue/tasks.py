@@ -15,7 +15,7 @@ def queue_outreach(referral_id: int):
         if not referral:
             return
 
-        orch = OutreachOrchestrator(db=db)
+        orch = OutreachOrchestrator(db=db, study_id=referral.study_id or "")
         jobs = orch.create_outreach_jobs(referral)
 
         for job in jobs:

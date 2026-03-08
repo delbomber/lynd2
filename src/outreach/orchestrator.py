@@ -26,9 +26,15 @@ class OutreachCadence:
 
 
 class OutreachOrchestrator:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session, study_id: str = ""):
         self.db = db
-        self.cadence = OutreachCadence.default()
+        # Demo referrals get a single immediate call — no retries
+        if study_id.startswith("DEMO"):
+            self.cadence = OutreachCadence(attempts=[
+                AttemptConfig(delay_minutes=0, channel="voice"),
+            ])
+        else:
+            self.cadence = OutreachCadence.default()
 
     def build_outreach_plan(self, referral_id: int) -> List[dict]:
         plan = []
