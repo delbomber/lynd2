@@ -7,8 +7,9 @@ from src.llm.intent import IntentDetector, Intent
 
 class IntroductionState:
     def get_opening_prompt(self, context: ConversationContext) -> str:
+        provider = context.referring_provider or "Your doctor"
         return (
-            "Your doctor referred you for a clinical research study we're coordinating. "
+            f"{provider} referred you for a clinical research study we're coordinating. "
             "It would involve a short screening call with one of our study coordinators. "
             "Would you like to hear a little more about it?"
         )

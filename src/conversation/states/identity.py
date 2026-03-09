@@ -36,9 +36,10 @@ class IdentityVerificationState:
 
     def get_opening_prompt(self, context: ConversationContext) -> str:
         first_name = context.patient_name.split()[0]
+        provider = context.referring_provider or "Your doctor"
         return (
             f"Hi {first_name}, this is Sarah calling from Lynd Clinical. "
-            f"Your doctor recently referred you to us about a research study, "
+            f"{provider} recently referred you to us about a research study, "
             f"and I'm calling to follow up. Is now an okay time?"
         )
 
@@ -91,9 +92,10 @@ class IdentityVerificationState:
             patient_said=patient_text, actual_dob=actual_dob, api_key=api_key
         ):
             context.identity_verified = True
+            provider = context.referring_provider or "Your doctor"
             return (
                 ConversationState.INTRODUCTION,
-                "Perfect, thank you! So as I mentioned, your doctor referred you "
+                f"Perfect, thank you! So as I mentioned, {provider} referred you "
                 "for a clinical research study we're coordinating. It would involve "
                 "a short screening call with one of our study coordinators. "
                 "Would you like to hear a little more about it?",

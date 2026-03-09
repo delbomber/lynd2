@@ -103,6 +103,7 @@ async def handle_media_stream(job_id: int, websocket: WebSocket):
         context = ConversationContext(
             patient_name=f"{patient.first_name} {patient.last_name}",
             study_id=referral.study_id,
+            referring_provider=referral.referring_provider or "",
         )
         handler = CallHandler(
             context=context,

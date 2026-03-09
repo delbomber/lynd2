@@ -66,9 +66,10 @@ def execute_outreach_job(job_id: int):
             from src.audio.tts import ElevenLabsTTS
             from src.audio.greeting_cache import cache_greeting_audio
 
+            provider = referral.referring_provider or "Your doctor"
             greeting_text = (
                 f"Hi {patient.first_name}, this is Sarah calling from Lynd Clinical. "
-                f"Your doctor recently referred you to us about a research study, "
+                f"{provider} recently referred you to us about a research study, "
                 f"and I'm calling to follow up. Is now an okay time?"
             )
             tts = ElevenLabsTTS(

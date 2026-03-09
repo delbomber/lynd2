@@ -34,6 +34,7 @@ ALWAYS_ALLOWED = {ConversationState.ESCALATION, ConversationState.COMPLETED}
 class ConversationContext:
     patient_name: str
     study_id: str
+    referring_provider: str = ""
     identity_verified: bool = False
     interest_level: Optional[str] = None
     scheduling_outcome: Optional[str] = None

@@ -36,6 +36,7 @@ export default function Demo() {
   const [firstName, setFirstName] = useState("Jane");
   const [lastName, setLastName] = useState("Smith");
   const [dob, setDob] = useState("1982-12-01");
+  const [referringProvider, setReferringProvider] = useState("Dr. Jones");
   const [apiUrl, setApiUrl] = useState(() => localStorage.getItem(STORAGE_KEY) || "");
   const [showSettings, setShowSettings] = useState(false);
   const [status, setStatus] = useState<Status>("idle");
@@ -73,7 +74,7 @@ export default function Demo() {
         date_of_birth: dob,
       },
       study_id: "DEMO-001",
-      referring_provider: "Live Demo",
+      referring_provider: referringProvider,
     };
 
     try {
@@ -276,6 +277,27 @@ export default function Demo() {
                 type="date"
                 value={dob}
                 onChange={(e) => setDob(e.target.value)}
+                disabled={status === "sending"}
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  borderRadius: 8,
+                  border: `1px solid ${colors.navy700}`,
+                  background: colors.navy900,
+                  color: colors.white,
+                  fontSize: 14,
+                  outline: "none",
+                  marginBottom: 12,
+                  opacity: status === "sending" ? 0.5 : 1,
+                }}
+              />
+              <label style={{ display: "block", fontSize: 13, color: colors.gray300, marginBottom: 6 }}>
+                Referring provider
+              </label>
+              <input
+                type="text"
+                value={referringProvider}
+                onChange={(e) => setReferringProvider(e.target.value)}
                 disabled={status === "sending"}
                 style={{
                   width: "100%",
