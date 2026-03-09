@@ -33,6 +33,20 @@ def health():
     return {"status": "ok"}
 
 
+@app.get("/audio/greeting/{job_id}")
+def serve_greeting_audio(job_id: int):
+    """Serve pre-generated ElevenLabs greeting audio for Twilio <Play>."""
+    from fastapi.responses import Response as FastAPIResponse
+    from src.audio.greeting_cache import get_greeting_audio
+    from src.config import get_settings
+
+    settings = get_settings()
+    audio = get_greeting_audio(job_id, redis_url=settings.redis_url)
+    if not audio:
+        return FastAPIResponse(status_code=404, content="Audio not found")
+    return FastAPIResponse(content=audio, media_type="audio/mpeg")
+
+
 @app.post("/admin/purge-queue")
 def purge_queue():
     """Purge all pending Celery tasks from the queue."""

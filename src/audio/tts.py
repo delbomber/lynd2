@@ -36,6 +36,16 @@ class ElevenLabsTTS:
         mulaw_data = audioop.lin2ulaw(downsampled, 2)
         return mulaw_data
 
+    def synthesize_mp3(self, text: str) -> bytes:
+        """Generate MP3 audio for pre-caching (used by Twilio <Play>)."""
+        audio_chunks = self.client.text_to_speech.convert(
+            voice_id=self.voice_id,
+            text=text,
+            model_id="eleven_turbo_v2_5",
+            output_format="mp3_44100_128",
+        )
+        return b"".join(audio_chunks)
+
     def synthesize_stream(self, text: str) -> Generator[bytes, None, None]:
         """Streams mulaw audio chunks as they arrive from ElevenLabs.
 

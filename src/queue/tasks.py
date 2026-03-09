@@ -61,6 +61,26 @@ def execute_outreach_job(job_id: int):
         db.commit()
 
         if job.channel == "voice":
+            # Pre-generate greeting audio with ElevenLabs before calling
+            # so it plays instantly when the patient picks up
+            from src.audio.tts import ElevenLabsTTS
+            from src.audio.greeting_cache import cache_greeting_audio
+
+            greeting_text = (
+                f"Hi {patient.first_name}, this is Sarah calling from Lynd Clinical. "
+                f"Your doctor recently referred you to us about a research study, "
+                f"and I'm calling to follow up. Is now an okay time?"
+            )
+            tts = ElevenLabsTTS(
+                api_key=settings.elevenlabs_api_key,
+                voice_id=settings.elevenlabs_voice_id,
+            )
+            logger.info("Pre-generating greeting audio for job %s", job_id)
+            mp3_audio = tts.synthesize_mp3(greeting_text)
+            if mp3_audio:
+                cache_greeting_audio(job_id, mp3_audio, redis_url=settings.redis_url)
+                logger.info("Greeting audio cached for job %s (%d bytes)", job_id, len(mp3_audio))
+
             twilio = TwilioClient(
                 account_sid=settings.twilio_account_sid,
                 auth_token=settings.twilio_auth_token,
