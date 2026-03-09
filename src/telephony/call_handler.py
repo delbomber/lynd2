@@ -154,9 +154,12 @@ class CallHandler:
         })
 
     async def on_call_start(self) -> None:
-        """Send the opening identity verification prompt."""
+        """Log that the call started. Opening greeting is played by Twilio TTS
+        in the answer webhook for instant playback (no ElevenLabs latency)."""
+        # Record the greeting in transcript for completeness
         prompt = self.identity_state.get_opening_prompt(self.context)
-        await self.speak(prompt)
+        self.context.append_transcript("agent", prompt)
+        logger.info("Agent says (via Twilio TTS): %s", prompt)
 
     async def on_transcript(self, text: str) -> None:
         """Route patient speech to the current state handler and transition."""

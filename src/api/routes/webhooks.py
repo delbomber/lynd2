@@ -21,6 +21,8 @@ async def handle_call_answer(
     To: str = Form(...),
     db: Session = Depends(get_db),
 ):
+    from src.db.models import OutreachJob, Referral, Patient
+
     settings = get_settings()
     response = VoiceResponse()
 
@@ -29,7 +31,25 @@ async def handle_call_answer(
         response.say(VOICEMAIL_MESSAGE, voice="Polly.Joanna")
         response.hangup()
     else:
-        # Human answered — connect to media stream for real-time conversation
+        # Look up patient name for the instant greeting
+        first_name = "there"
+        job = db.query(OutreachJob).filter(OutreachJob.id == job_id).first()
+        if job:
+            referral = db.query(Referral).filter(Referral.id == job.referral_id).first()
+            if referral:
+                patient = db.query(Patient).filter(Patient.id == referral.patient_id).first()
+                if patient:
+                    first_name = patient.first_name
+
+        # Play greeting instantly via Twilio TTS (no ElevenLabs latency)
+        response.say(
+            f"Hi {first_name}, this is Sarah calling from Lynd Clinical. "
+            f"Your doctor recently referred you to us about a research study, "
+            f"and I'm calling to follow up. Is now an okay time?",
+            voice="Polly.Joanna",
+        )
+
+        # Then connect to media stream for the rest of the conversation
         host = settings.app_base_url.replace("https://", "").replace("http://", "")
         connect = Connect()
         stream = Stream(url=f"wss://{host}/webhooks/stream/{job_id}")

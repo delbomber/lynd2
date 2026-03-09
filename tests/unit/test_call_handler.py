@@ -29,13 +29,13 @@ async def test_call_handler_initializes_state_machine():
 
 
 @pytest.mark.asyncio
-async def test_call_handler_sends_opening_prompt():
+async def test_call_handler_logs_opening_prompt():
     handler = _make_handler()
-    with patch.object(handler, "speak", new_callable=AsyncMock) as mock_speak:
-        await handler.on_call_start()
-        mock_speak.assert_called_once()
-        args = mock_speak.call_args[0][0]
-        assert "Jane" in args
+    await handler.on_call_start()
+    # Opening greeting is now played by Twilio TTS, but still recorded in transcript
+    assert len(handler.context.transcript_segments) == 1
+    assert handler.context.transcript_segments[0]["speaker"] == "agent"
+    assert "Jane" in handler.context.transcript_segments[0]["text"]
 
 
 @pytest.mark.asyncio
