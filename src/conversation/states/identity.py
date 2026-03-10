@@ -9,6 +9,11 @@ from src.llm.client import ClaudeClient
 logger = logging.getLogger(__name__)
 
 
+def _expand_title(name: str) -> str:
+    """Expand abbreviations like 'Dr.' to 'Doctor' for clearer TTS pronunciation."""
+    return re.sub(r'\bDr\.?\b', 'Doctor', name)
+
+
 DOB_PARSE_SYSTEM = """Extract a date of birth from natural speech and return it in YYYY-MM-DD format.
 Examples: 'January 15th 1980' -> '1980-01-15', 'the fifth of March, 85' -> '1985-03-05',
 '12/01/1982' -> '1982-12-01', 'december 1st 1982' -> '1982-12-01'
@@ -36,7 +41,7 @@ class IdentityVerificationState:
 
     def get_opening_prompt(self, context: ConversationContext) -> str:
         first_name = context.patient_name.split()[0]
-        provider = context.referring_provider or "Your doctor"
+        provider = _expand_title(context.referring_provider) if context.referring_provider else "Your doctor"
         return (
             f"Hi {first_name}, this is Sarah calling from Lynd Clinical. "
             f"{provider} recently referred you to us about a research study, "
@@ -92,7 +97,7 @@ class IdentityVerificationState:
             patient_said=patient_text, actual_dob=actual_dob, api_key=api_key
         ):
             context.identity_verified = True
-            provider = context.referring_provider or "Your doctor"
+            provider = _expand_title(context.referring_provider) if context.referring_provider else "Your doctor"
             return (
                 ConversationState.INTRODUCTION,
                 f"Perfect, thank you! So as I mentioned, {provider} referred you "

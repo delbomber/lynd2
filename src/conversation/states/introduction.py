@@ -2,12 +2,13 @@ from typing import Tuple
 
 from src.db.models import ConversationState
 from src.conversation.state_machine import ConversationContext
+from src.conversation.states.identity import _expand_title
 from src.llm.intent import IntentDetector, Intent
 
 
 class IntroductionState:
     def get_opening_prompt(self, context: ConversationContext) -> str:
-        provider = context.referring_provider or "Your doctor"
+        provider = _expand_title(context.referring_provider) if context.referring_provider else "Your doctor"
         return (
             f"{provider} referred you for a clinical research study we're coordinating. "
             "It would involve a short screening call with one of our study coordinators. "
