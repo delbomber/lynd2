@@ -36,7 +36,7 @@ export default function Demo() {
   const [firstName, setFirstName] = useState("Jane");
   const [lastName, setLastName] = useState("Smith");
   const [dob, setDob] = useState("1982-12-01");
-  const [referringProvider, setReferringProvider] = useState("Dr. Jones");
+  const [referringProvider, setReferringProvider] = useState("Doctor Jones");
   const [apiUrl, setApiUrl] = useState(() => localStorage.getItem(STORAGE_KEY) || "");
   const [showSettings, setShowSettings] = useState(false);
   const [status, setStatus] = useState<Status>("idle");
