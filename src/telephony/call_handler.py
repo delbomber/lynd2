@@ -217,6 +217,12 @@ class CallHandler:
             )
             if next_state != current:
                 self.machine.transition(next_state)
+                # When transitioning to pre-screen, append the first question
+                # so the patient hears it immediately after the preamble
+                if next_state == ConversationState.PRE_SCREEN:
+                    first_q = self.prescreen_state.get_current_question(0)
+                    if first_q:
+                        response = f"{response} {first_q['text']}"
 
         elif current == ConversationState.PRE_SCREEN:
             next_state, response, meta = self.prescreen_state.handle_response(
