@@ -99,7 +99,7 @@ class IdentityVerificationState:
                 f"Perfect, thank you! So as I mentioned, {provider} referred you "
                 "for a clinical research study we're coordinating. It would involve "
                 "a short screening call with one of our study coordinators. "
-                "Would you like to hear a little more about it?",
+                "Would you like to hear a little more about the study?",
             )
         elif attempt < MAX_DOB_ATTEMPTS:
             return (

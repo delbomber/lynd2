@@ -27,7 +27,7 @@ MULAW_CHUNK_SIZE = 160
 # Default pre-screen questions — override per study
 DEFAULT_PRESCREEN_QUESTIONS = [
     {"key": "age_eligible", "text": "First — are you between 18 and 70 years old?"},
-    {"key": "diagnosis_confirmed", "text": "And have you been diagnosed with the condition your doctor referred you for?"},
+    {"key": "diagnosis_confirmed", "text": "Have you been diagnosed with the condition discussed during your referral to this study?"},
     {"key": "receiving_treatment", "text": "Are you currently receiving treatment for that condition?"},
 ]
 
