@@ -5,6 +5,7 @@ import asyncio
 import base64
 import json
 import logging
+import time
 from datetime import datetime
 from typing import Optional
 
@@ -97,6 +98,12 @@ class CallHandler:
         # Twilio stream SID for sending audio back
         self.stream_sid: Optional[str] = None
 
+        # Echo suppression: ignore transcripts while agent is speaking
+        self._is_speaking = False
+        self._speech_done_time: float = 0.0
+        # Cooldown after speech ends to catch trailing echo (seconds)
+        self._echo_cooldown = 1.5
+
         # STT / TTS are lazily initialized in run_websocket_session
         self.stt = None
         self.tts = None
@@ -105,11 +112,15 @@ class CallHandler:
         """Synthesize text via TTS and stream audio chunks back to Twilio WebSocket.
 
         Uses streaming TTS so first audio bytes arrive at the caller faster.
+        Sets _is_speaking flag to suppress echo from being treated as patient speech.
         """
+        self._is_speaking = True
         self.context.append_transcript("agent", text)
         logger.info("Agent says: %s", text)
 
         if self.websocket is None or self.tts is None:
+            self._is_speaking = False
+            self._speech_done_time = time.monotonic()
             return
 
         loop = asyncio.get_running_loop()
@@ -153,9 +164,15 @@ class CallHandler:
             "mark": {"name": "speech_done"},
         })
 
+        self._is_speaking = False
+        self._speech_done_time = time.monotonic()
+
     async def on_call_start(self) -> None:
-        """Log that the call started. Opening greeting is played by Twilio TTS
-        in the answer webhook for instant playback (no ElevenLabs latency)."""
+        """Log that the call started. Opening greeting is played by Twilio <Play>
+        in the answer webhook for instant playback (no ElevenLabs latency).
+
+        We don't set _is_speaking here because the greeting already finished
+        playing before the WebSocket stream connects."""
         # Record the greeting in transcript for completeness
         prompt = self.identity_state.get_opening_prompt(self.context)
         self.context.append_transcript("agent", prompt)
@@ -163,6 +180,15 @@ class CallHandler:
 
     async def on_transcript(self, text: str) -> None:
         """Route patient speech to the current state handler and transition."""
+        # Echo suppression: ignore transcripts while agent is speaking
+        # or within the cooldown window after speech ends (catches trailing echo)
+        if self._is_speaking:
+            logger.info("Ignoring transcript during agent speech (echo): %s", text)
+            return
+        if time.monotonic() - self._speech_done_time < self._echo_cooldown:
+            logger.info("Ignoring transcript during echo cooldown: %s", text)
+            return
+
         self.context.append_transcript("patient", text)
         logger.info("Patient says: %s", text)
 
